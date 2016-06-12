@@ -1,0 +1,272 @@
+@mixin carousel3dcontainer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    @include perspective(1100px); 
+    -ms-perspective: 1100px;    
+    
+    ._3dc-timer { 
+        z-index: 100;
+        position: absolute;
+        top: 2%;
+        right: 2%;
+        width: 15%;
+        max-width: 150px;
+        height: 5%;  
+        
+        ._3dc-timer-progress-bar {
+            max-height: 16px;
+            display: block;
+            height: 100%;
+            width: 0;
+            background: rgba(0, 0, 0, 0.3);
+            margin-right: 15px;
+        }
+        
+        ._3dc-timer-btn {   
+            position: absolute;
+            right: 0;
+            height: 100%;
+            max-height: 16px;
+            display: block;
+            
+            &.play {
+                width: 13px; 
+                background-color: transparent;  
+                
+                &:after {
+                    content: "";
+                    top: 0;  
+                    left: 3px;
+                    position: absolute;
+                    border-top: 8px solid transparent;
+                    border-bottom: 8px solid transparent; 
+                    border-left:8px solid rgba(0, 0, 0, 0.3);
+                }
+                
+                &:hover {
+                    &:after { 
+                        border-left-color: rgba(0, 0, 0, 0.7);
+                    }
+                }
+            }
+            
+            &.pause { 
+                width: 13px; 
+                background-color: transparent;  
+                
+                &:before, 
+                &:after {
+                    width: 4px;        
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.3);
+                    position: absolute;
+                    content: "";
+                    top: 0;
+                }
+                
+                &:before {
+                    left: 1px;
+                }
+
+                &:after { 
+                    right: 1px;
+                }
+                
+                &:hover {
+                    &:before, 
+                    &:after { 
+                        background: rgba(0, 0, 0, 0.7);
+                    }
+                }
+            }
+        }
+    }
+    
+    ._3dc-prev, 
+    ._3dc-next {
+        @include transition(all 1s); 
+        z-index: 100;
+        position: absolute;
+        width: 3%;
+        height: 30px; 
+        top: 0;
+        bottom: 0;
+        margin: auto;
+        cursor: pointer;
+        
+        &:hover {
+            background: rgba(255,255,255, 0.3);
+            &:after {
+                border-right-color: rgba(0, 0, 0, 0.7);
+                border-left-color: rgba(0, 0, 0, 0.7);
+            }
+        }
+    }
+    
+    ._3dc-prev {
+        left: 1.5%;
+        &:after {
+            content: "";
+            top: 5px;  
+            left: 5px;  
+            margin: auto;
+            position: absolute;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent; 
+            border-right:10px solid rgba(0, 0, 0, 0.3);
+        }
+    }
+    
+    ._3dc-next {
+        right: 1.5%;
+        &:after {
+            content: "";
+            top: 5px;  
+            right: 5px;  
+            margin: auto;
+            position: absolute;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent; 
+            border-left:10px solid rgba(0, 0, 0, 0.3);
+        }
+    }
+}
+@mixin carousel3d(/*$tot_slides:2*/) {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    //@include transform(translateZ( -288px )); setto via javascript dinamicamente
+    @include transform-style(preserve-3d);
+    @include transition(transform 1s);
+    -ms-transform-style: none ;
+    -ms-transform: none ;
+    
+    figure {
+        @include backface-visibility(hidden); 
+        @include opacity(0.5); 
+        @include transition(opacity 1s, transform 1s); 
+        display: block;
+        position: absolute; 
+        width: 88%;
+        left:6%;
+        height: 82%; 
+        top:9%;
+        margin: 0;
+        -ms-transform-style: none ;
+        
+        background: #eeeeee;
+        &:nth-child(odd) { 
+            background: #adadad;
+        }
+        ///@for $i from 0 to $tot_slides {
+        //    &:nth-child(#{$i+1}) {  
+                //$rotate_val: ( 360 / $tot_slides ) * $i ;
+                //@include transform(rotateY(  $rotate_val+deg ) translateZ( 288px ));  setto via javascript dinamicamente
+        //        background: darken( rgba(0,255,0,1) , 5*$i );
+        //    }
+        //}
+        
+        &.active {
+            @include opacity(1);
+            z-index: +1;
+        }
+    }
+}
+
+    
+html, body {
+    //con carousel fullscreen setto overflow hidden x evitare scroll indesiderati
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+}
+#dragSpeed {
+    position: absolute;
+    bottom: 0;
+    font-size: 16px;
+}
+/*body {
+    //bugfix effetto flickr che si verifica alle volte ruotando il carousel su chrome 
+    -webkit-transform: translate3d(0, 0, 0);
+}*/
+.container {
+    @include carousel3dcontainer();
+    width: 100%;
+    height: 100%; 
+    position: relative;
+    margin: 0 auto;
+    border: 0px solid #CCC;
+    overflow: hidden;
+    
+} 
+#carousel,
+#carousel2 { 
+    @include carousel3d(/*14*/);
+    figure {  
+        line-height: 1;
+        font-size: 80px;
+        font-weight: bold;
+        color: red;
+        text-align: center;
+        -webkit-transform:translateZ(0);
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+}
+#carousel {
+    figure {  
+        &:nth-child(odd) {  
+            background: url(../img/test1.jpg) no-repeat  ;
+        }
+        &:nth-child(even) {  
+            background: url(../img/test2.jpg) no-repeat  ;
+        }
+    background-size: 100%;
+    }
+}
+#carousel2 {
+    figure { 
+        &:nth-child(odd) {  
+            background: url(../img/test2.jpg) no-repeat  ;
+        }
+        &:nth-child(even) {  
+            background: url(../img/test1.jpg) no-repeat  ;
+        }
+    background-size: 100%;
+        width: 100%;
+        left:0;
+        top: 0;
+        height: 100%; 
+    }
+}
+.pageTransition {
+    div {
+        display: block;
+        height: 100%;
+        width: 100%;
+        a {
+            @include transform( translateZ( 0 )); 
+        }
+    }
+}
+
+
+
+//test con 2 carousel in pagina
+
+.containerH50 {
+    @include carousel3dcontainer();
+    width: 100%;
+    height: 50%; 
+    position: relative;
+    margin: 0 auto;
+    border: 0px solid #CCC;
+    overflow: hidden; 
+}  
+ 

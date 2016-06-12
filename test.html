@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<!--
+    Copyright (c) 2012-2014 Adobe Systems Incorporated. All rights reserved.
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+     KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, target-densitydpi=device-dpi" />
+        <link rel="stylesheet" type="text/css" href="css/screen.css" />
+        <link rel="stylesheet" type="text/css" href="css/animate.min.css">
+        <title>Hello World</title>
+    </head> 
+    <body>
+            <div class="container">
+                <div id="dragSpeed"> </div>
+                <div id="carousel">
+                  <figure>1</figure>
+                  <figure class="pageTransition">
+                      <div>2<br><a href="demo1.html" >enter</a></div> 
+                    </figure>
+                  <figure>3<br>
+                      <a href="index.html" >back</a> 
+                    </figure>
+                  <figure>4</figure>
+                  <figure>5</figure>
+                  <figure>6</figure>
+                  <figure>7</figure>
+                  <figure>8</figure>
+                  <figure>9</figure>
+                  <figure>10</figure>
+                  <figure>11</figure>
+                  <figure>12</figure>
+                  <figure>13</figure>
+                  <figure>14</figure>
+                </div>
+            </div>
+    <br>
+            
+<!--
+        <script type="text/javascript" src="cordova.js"></script>
+        <script type="text/javascript" src="js/Flashlight.js"></script>
+-->
+        <script type="text/javascript" src="js/jquery.min.js"></script>  
+<!--        <script type="text/javascript" src="js/index.js"></script> -->
+    <script>
+    var init = function() {
+      var carousel = $('#carousel'), 
+          carouselWidth = carousel.width(),
+          container = carousel.parent(),
+          panelCount = carousel.children().length,
+          activePanel = null ,
+          tempPanel = null ,
+          onTouch = false ,
+          touched = false ,
+          touchPoint = null,
+          onDrag = false ,
+          dragged = false ,
+          dragSpeed = null,
+          dragSpeedRefValue = 100,
+          dragSpeedDistance = null,
+          dragSpeedTime = null,
+          checkDragSpeed = null,
+          dragPoint = null,
+          tempTheta=null,
+          tempPoint= null,
+          tempTimestamp = null,
+          checkDrag = null,
+          onFakeSwipe = false , 
+          checkFakeSwipe = null ,
+          touchSupport = ('ontouchstart' in document.documentElement),
+          
+          onDragEnd = false , //usato x determinare momento in cui cambio slide ( x ottimizzare tocchi ripetuti )
+          checkDragEnd = null,
+          direction = null,
+          tempDirection = null,
+          
+          
+          //transformProp = Modernizr.prefixed('transform'),
+          lastTheta = null,
+          theta = 0,
+          r = Math.round( ( carouselWidth / 2 ) / Math.tan( Math.PI / panelCount ) ) ,
+          
+          onNavButtonClick = function( event ){
+              var increment = parseInt(event);// event.target.getAttribute('data-increment') );
+              theta += ( 360 / panelCount ) * increment * -1; 
+              //ricavo deg di disallineamneto e converto valore in %
+              var distance = theta % ( 360 / panelCount );//deg
+              var distanceP = /*Math.abs*/(distance / ( ( 360 / panelCount ) / 100 ));// percentuale 
+              //se percentuale è > 50 % o < -50 aggiorno posizione alla slide visivamente corretta 
+              if( distanceP > 50 && theta > 0 ) { 
+                  //console.warn('end swipe - align '+distanceP+'% to '+theta);
+                  theta =  (theta - distance) + ( 360 / panelCount );
+              }
+              else if( distanceP < -50 && theta < 0 ) { 
+                  //console.warn('end swipe - align '+distanceP+'% to '+theta);
+                  theta =  (theta - distance) - ( 360 / panelCount );
+              }
+              else { 
+                  //console.log('end swipe - align '+distanceP+'% ('+distance+') to '+theta);
+                  theta =  (theta - distance);
+              } 
+              //check direction
+              if(increment > 0 ) direction = 'right';
+              else if(increment < 0 ) direction = 'left';
+              
+              //carousel.children().css('background-color','rgb(' + utilities.convertDegToRgb( theta ) + ')');
+              carousel.css('transform','translateZ( -'+r+'px ) rotateY(' + theta + 'deg)');
+              //aggiorno indice activePanel
+              activePanel =  1 + Math.round( Math.abs ( theta / ( 360 /panelCount ) ) % panelCount ); 
+              if(activePanel> panelCount) activePanel = 1;
+              else if(theta > 0 && activePanel != 1) activePanel = panelCount -activePanel + 2;
+              //else if(theta > 0 ) activePanel = panelCount -activePanel + 1;
+              //trigger evento changeSlide  
+              notifyCustomEvents('changeSlide',event);
+          },        
+          setTranslateZ = function() { 
+              //setto e aggiorno valori translateZ dinamici
+              carouselWidth = carousel.width();
+              r = Math.round( ( carouselWidth / 2 ) / Math.tan( Math.PI / panelCount ) );
+              carousel.css('transform','translateZ( -'+r+'px )'); 
+              $.each(carousel.children(),function(){  
+                  $(this).css('transform','rotateY(' + (( 360 / panelCount ) * $(this).index()) + 'deg) translateZ( '+r+'px ) scale(0.8)');
+              });
+              activePanel = 1 ;
+              theta = 0 ;
+              direction = null ; 
+              carousel.children('.active').removeClass('active');
+              carousel.children().eq(activePanel -1).addClass('active');
+                  
+              carousel.children().eq(activePanel -1).css(
+                  'transform','rotateY(' + (( 360 / panelCount ) * carousel.children().eq(activePanel -1).index()) + 'deg) '+
+                  'translateZ( '+r+'px ) scale(1)'
+              );
+          }, 
+          
+          fakeSwipe = function(e) {
+              //sommo eventi e ogni tot ( test 50 x slide ) aziono funzione onNavButtonClick ( countFakeSwipe++)
+              if(onFakeSwipe === false ) {   
+                  onFakeSwipe = carouselWidth ;  
+                  carousel.css('transition','transform 0s');
+                  //console.log('start swipe '+theta);   
+              }
+              execFakeSwipe(e); 
+              clearTimeout(checkFakeSwipe); 
+              checkFakeSwipe=setTimeout(function(){
+                  
+                  //calcolo posizione finale in deg
+                  //theta = ( 360 / tempPoint ) + theta;   
+                  //ricavo deg di disallineamneto e converto valore in %
+                  var distance = theta % ( 360 / panelCount );//deg
+                  var distanceP = /*Math.abs*/(distance / ( ( 360 / panelCount ) / 100 ));// percentuale 
+                  //se percentuale è > 50 % o < -50 aggiorno posizione alla slide visivamente corretta 
+                  if( distanceP > 50 && ( theta > 0 || direction == 'left')) { 
+                      //console.warn('end swipe - align '+distanceP+'% to '+theta);
+                      theta = (theta - distance) + ( 360 / panelCount );
+                  }
+                  else if( distanceP < -50 && ( theta < 0 || direction == 'right')) { 
+                      //console.warn('end swipe - align '+distanceP+'% to '+theta);
+                      theta = (theta - distance) - ( 360 / panelCount );
+                  }
+                  else { 
+                      //console.log('end swipe - align '+distanceP+'% ('+distance+') to '+theta);
+                      theta = (theta - distance);
+                  }  
+                  carousel.css('transition','transform 1s');
+                   
+                      carousel.css('transform','translateZ( -'+r+'px ) rotateY(' + theta + 'deg)');
+                      //aggiorno indice activePanel
+                      tempPanel =  1+Math.round( Math.abs ( theta / ( 360 /panelCount ) ) % panelCount ); 
+                      if(tempPanel> panelCount) tempPanel = 1;
+                      else if(theta > 0 && tempPanel != 1 ) tempPanel = panelCount -tempPanel +2;
+                      if(tempPanel != activePanel) {
+                          //trigger evento changeSlide  
+                          activePanel = tempPanel;
+                          notifyCustomEvents('changeSlide',e);
+                      } 
+                  
+                  onFakeSwipe = false; 
+                  tempPoint=null;
+              },125);
+          },
+          execFakeSwipe = function(e) {
+              if(onFakeSwipe !== false ) {
+                  if(e.originalEvent.wheelDeltaX != 0) { 
+                      tempPoint = e.originalEvent.wheelDeltaX; 
+                      //console.log('on swipe '+tempPoint + " . " +theta + " . " + (( tempPoint * 100 ) / onFakeSwipe) );
+                      //distanza in px ora la converto in % in rapporto a container width 
+                      tempPoint = ( tempPoint * 100 ) / onFakeSwipe;
+                      //adesso calcolo quante volte ci sta questa distanza in container per arrivare a 100 % di widt
+                      tempPoint = 100 / tempPoint; 
+                      tempPoint = tempPoint * panelCount; // "RALLENTO SWIPE" MOLTIPLICANDO IL VALORE DI TEMP POINT 
+                      
+                      //check direction
+                      if(e.originalEvent.wheelDeltaX > 0 ) direction = 'left';
+                      else if(e.originalEvent.wheelDeltaX < 0 ) direction = 'right';
+                      
+                      //BUGFIX PREVENT CALCOLI ERRATI - SE MAGGIORE DI 360 Azzero valore
+                      //if( Math.abs( 360 / tempPoint ) > 360 ) { tempPoint = 360; }
+                      
+                      theta = ( 360 / tempPoint ) + theta; 
+                      console.log('on swipe '+theta  );
+                      carousel.css('transform','translateZ( -'+r+'px ) rotateY(' + theta + 'deg)');  
+            
+                      //aggiorno indice activePanel
+                      tempPanel =  1+Math.round( Math.abs ( theta / ( 360 /panelCount ) ) % panelCount ); 
+                      if(tempPanel> panelCount) tempPanel = 1;
+                      else if(theta > 0 && tempPanel != 1 ) tempPanel = panelCount -tempPanel +2 ;
+                      if(tempPanel != activePanel) {
+                          //trigger evento changeSlide  
+                          activePanel = tempPanel;
+                          notifyCustomEvents('changeSlide',e);
+                      }
+                  } 
+              }
+          },
+          
+          startDrag = function(e){
+              onDrag = carouselWidth ; 
+              if(e.type=='touchstart') {
+                  dragPoint = e.originalEvent.touches[0].pageX - e.originalEvent.touches[0].target.offsetLeft;
+              }
+              else { 
+                  dragPoint = e.pageX - e.target.offsetLeft; 
+              } 
+              tempTheta=theta;
+              calcDragSpeed(e);
+              //console.log('inizio '+e.type + " " + theta);
+          }, 
+          execDrag = function(e) {
+            if(onDrag !== false ) {
+                if( onDragEnd===false || (dragged!==true && e.type!='touchmove')) {
+                    carousel.css('transition','transform 0s');
+                }
+                //mi sposto 
+                if(e.type=='touchmove') {
+                    tempPoint = e.originalEvent.touches[0].pageX - e.originalEvent.touches[0].target.offsetLeft - dragPoint ;
+                }
+                else { 
+                    tempPoint = e.pageX - e.target.offsetLeft - dragPoint ; //distanza px --da cal equivalente in gradi 
+                }
+                 
+                //check direction
+                if(tempPoint> 0 ) direction = 'left';
+                else if(tempPoint < 0 ) direction = 'right'; 
+                
+                if(onDragEnd===true && e.type=='touchmove' && ( tempPoint < -5 || tempPoint >5 )) {
+                    //Probabilmente sto cercando di forzare giro di slide con ulteriori "swipe" -> non eseguo execDrag ma spetto dragEnd
+                    console.info('OnDragEnd continuo - stop '+e.type + " di " + tempPoint);
+                }
+                else if(tempPoint!= 0 ) {  
+                    checkDrag = tempPoint; // salvo temp point da confrontare con evento next ... se differiscono troppo non faccio nulla
+                    //console.log(tempPoint + " . " + (( tempPoint * 100 ) / onDrag) + e.type);
+                    
+                    if(onDragEnd===true && e.type=='touchmove' ) {
+                        //Probabilmente voglio fermarmi e non fare "swipe" continuo -> blocco transition e fisso punto (rotate)
+                        carousel.css('transition','transform 0s');
+                        console.warn('onDragEnd '+e.type + " " + tempPoint); 
+                        //reset status onDragEnd (?)
+                        clearTimeout(checkDragEnd); 
+                        onDragEnd=false;
+                        console.error('OnDragEnd stopped ' + tempPoint);
+                    }
+                    /*if(onDragEnd===true && e.type=='touchmove' && tempPoint > 10) {
+                        //se mi muovo piu di 10px considero che voglio continuare il +1/+2
+                        //non faccio nulla fino a touchend 
+                        console.warn('onDragEnd '+e.type + " " + tempPoint);
+                        //distanza in px ora la converto in % in rapporto a container width 
+                        tempPoint = ( tempPoint * 100 ) / onDrag;
+                        //adesso calcolo quante volte ci sta questa distanza in container per arrivare a 100 % di widt
+                        tempPoint = 100 / tempPoint;
+                        //else {
+
+                            //BUGFIX PREVENT CALCOLI ERRATI - SE MAGGIORE DI 360 Azzero valore
+                            if( Math.abs(( 360 / tempPoint )/ panelCount ) > 360 ) { tempPoint = 360; }
+
+                            //correggo velocita dividento x 6 (  o panelCount ? ) e sommo a theta
+                            tempPoint = (( 360 / tempPoint )/ panelCount ) + theta; 
+
+                       // }
+
+                        //console.log('on '+e.type + " " + tempPoint); 
+                        tempTheta=tempPoint;
+                    }
+                    else {*/
+                        //distanza in px ora la converto in % in rapporto a container width 
+                        tempPoint = ( tempPoint * 100 ) / onDrag;
+                        //adesso calcolo quante volte ci sta questa distanza in container per arrivare a 100 % di widt
+                        tempPoint = 100 / tempPoint;
+                        //else {
+
+                            //BUGFIX PREVENT CALCOLI ERRATI - SE MAGGIORE DI 360 Azzero valore
+                            if( Math.abs(( 360 / tempPoint )/ panelCount ) > 360 ) { tempPoint = 360; }
+
+                            //correggo velocita dividento x 6 (  o panelCount ? ) e sommo a theta
+                            tempPoint = (( 360 / tempPoint )/ panelCount ) + theta; 
+
+                       // }
+
+                        //console.log('on '+e.type + " " + tempPoint); 
+                        tempTheta=tempPoint;
+                        carousel.css('transform','translateZ( -'+r+'px ) rotateY(' + tempTheta + 'deg)');
+                        //aggiorno indice activePanel
+                        tempPanel =  1+Math.round( Math.abs ( tempTheta / ( 360 /panelCount ) ) % panelCount ); 
+                        if(tempPanel> panelCount) tempPanel = 1;
+                        else if(theta > 0 && tempPanel != 1 ) tempPanel = panelCount -tempPanel +2 ;
+                        if(tempPanel != activePanel) {
+                            //trigger evento changeSlide  
+                            activePanel = tempPanel;
+                            notifyCustomEvents('changeSlide',e);
+                        }
+                    /*}*/
+                }   
+                dragged = true;
+            }
+          },     
+          endDrag = function(e) {
+            if(onDrag !== false && dragged === true  ) {  
+                //calcolo posizione finale in deg  
+                theta = tempTheta;
+                tempTheta=theta;
+                calcDragSpeed(e);
+                
+                //ricavo deg di disallineamneto e converto valore in %
+                var distance = theta % ( 360 / panelCount );//deg
+                var distanceP = /*Math.abs*/(distance / ( ( 360 / panelCount ) / 100 ));// percentuale 
+                
+                //verifico se devo allinearmi a slide piu vicina ( se sono disallineato )
+                //se percentuale è > 50 % o < -50 aggiorno posizione alla slide visivamente corretta 
+                //se sono onDragEnd agevolo cambio slide
+                if( ( distanceP > 50 ||( onDragEnd === true && distanceP > 0 )) && ( theta > 0 || direction == 'left' ) ) { 
+                    console.warn('end '+e.type + ' - align '+distanceP+'% to +'+theta);
+                    theta = (theta - distance) + ( 360 / panelCount );
+                    if( e.type=='touchend') { enableDragEnd(); }
+                }
+                else if( ( distanceP <-50 || ( onDragEnd === true && distanceP < 0) ) && ( theta < 0 || direction == 'right' ) ) { 
+                    console.warn('end '+e.type + ' - align '+distanceP+'% to -'+theta);
+                    theta = (theta - distance) - ( 360 / panelCount );
+                    if( e.type=='touchend') { enableDragEnd(); }
+                }
+                else { 
+                    console.log('end '+e.type + ' - align '+distanceP+'% ('+distance+') to '+theta);
+                    theta = (theta - distance);
+                }  
+                if( e.type=='touchend') {
+                    //Check dragspeed - aggiusto valore con time a 200ms nel caso sia diverso
+                    if(  dragSpeedTime != dragSpeedRefValue  && dragSpeedTime != 0 ) {
+                        //console.log('* ' +dragSpeed);
+                        dragSpeed = dragSpeed * ( dragSpeedRefValue / dragSpeedTime ) ;// * dragSpeedTime
+                        console.info("SPEED * = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms");
+                        $('#dragSpeed').html("SPEED = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms");
+                    }
+                    else {
+                        console.info("SPEED = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms");
+                        $('#dragSpeed').html("SPEED = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms");
+                    } 
+                    //ho velocita .. guardo distanceP e in base a quello aggiungo +1 
+                    //if( ( distanceP > 0 && distanceP < 50 && dragSpeed > 66 )) { 
+                    if( ( direction  == 'left' && dragSpeed > 66 )) { 
+                        //non è distante abbastanza x andare a next ma vado veloce +2 slide
+                        theta = theta + ( 2* (( 360 / panelCount )));
+                        console.warn("+2");
+                        $('#dragSpeed').html("+1 SPEED = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms"); 
+                    }
+                    //else if( ( distanceP > 0 && distanceP < 50 && dragSpeed > 13 ) || ( distanceP > 50 && dragSpeed > 66)) { 
+                    else if( direction  == 'left' && dragSpeed > 13 ) { 
+                        //non è distante abbastanza x andare a next ma la accompagno +1 slide
+                        //è distante abbastanza x andare a next(+1) e vado veloce +1 slide ( +2 in totale )
+                        theta = theta + (( 360 / panelCount ));
+                        console.warn("+1");
+                        $('#dragSpeed').html("+1 SPEED = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms");
+                    } 
+                    else if( direction  == 'right' && dragSpeed < -66 ) { 
+                        theta = theta - ( 2*( 360 / panelCount ) );
+                        //non è distante abbastanza x andare a prev ma vado veloce -2 slide
+                        console.warn("-1");
+                        $('#dragSpeed').html("-1 SPEED = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms");
+                    }
+                    else if( direction  == 'right' && dragSpeed < -13 ) { 
+                        //non è distante abbastanza x andare a prev ma la accompagno -1 slide
+                        //è distante abbastanza x andare a prev(-1) e vado veloce -1 slide ( -2 in totale )
+                        theta = theta - (( 360 / panelCount ));
+                        console.warn("-1");
+                        $('#dragSpeed').html("-1 SPEED = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms");
+                    }
+                }
+                carousel.css('transition','transform 1s');
+                carousel.css('transform','translateZ( -'+r+'px ) rotateY(' + theta + 'deg)');
+                 
+                //aggiorno indice activePanel
+                tempPanel =  1+Math.round( Math.abs ( theta / ( 360 /panelCount ) ) % panelCount ); 
+                if(tempPanel> panelCount) tempPanel = 1;
+                else if(theta > 0 && tempPanel != 1 ) tempPanel = panelCount -tempPanel +2 ;
+                if(tempPanel != activePanel) {
+                    //trigger evento changeSlide  
+                    activePanel = tempPanel;
+                    notifyCustomEvents('changeSlide',e);
+                }
+            }
+            else {
+                calcDragSpeed(e);
+            }
+            checkDrag = null;
+            dragPoint = null;
+            dragged = false ;
+            onDrag = false ;
+          },  
+          enableDragEnd = function() {
+              if( onDragEnd===false ) {
+                  //attivo ondrag end
+                  onDragEnd = true ; 
+              }
+              //reset onDragEnd via timeout dopo 500ms
+              clearTimeout(checkDragEnd); 
+              checkDragEnd=setTimeout(function(){ 
+                  onDragEnd = false; 
+                  console.info('OnDragEnd finish ' );
+              },300);
+          },
+          calcDragSpeed = function(e) { 
+              var now= Date.now();
+              if(e && e.type=='touchstart') {
+                  tempTimestamp = now;
+                  lastTheta = tempTheta;
+                  //setto timer x check tempi morti
+                  clearTimeout(checkDragSpeed); 
+                  checkDragSpeed=setTimeout(calcDragSpeed,dragSpeedRefValue); 
+                  $('#dragSpeed').html('');
+              } 
+              else if(e && (e.type=='mouseup' || e.type=='touchend')) {
+                  clearTimeout(checkDragSpeed);
+                  if(tempTimestamp !== null && tempTheta!==null  && lastTheta!==null ) {
+                      dragSpeed = ((tempTheta - lastTheta) / (now-tempTimestamp)) * 100;
+                      dragSpeedTime = (now-tempTimestamp);
+                       
+                      //Check dragspeed - aggiusto valore con time a 200ms nel caso sia diverso
+                      if(  dragSpeedTime != dragSpeedRefValue  && dragSpeedTime != 0 ) {
+                          //console.log('* ' +dragSpeed);
+                          dragSpeed = dragSpeed * ( dragSpeedRefValue / dragSpeedTime ) ;// * dragSpeedTime
+                          console.info("SPEED * = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms");
+                          $('#dragSpeed').html("SPEED = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms");
+                      }
+                      else {
+                          console.info("SPEED = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms");
+                          $('#dragSpeed').html("SPEED = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms");
+                      }      
+                       
+                  }
+                  tempTimestamp = null;
+                  tempTheta = null;
+                  lastTheta = null; 
+              }
+              else { 
+                  checkDragSpeed=setTimeout(calcDragSpeed,dragSpeedRefValue); 
+                  if(tempTimestamp !== null && lastTheta!==null && now != tempTimestamp) {
+                      
+                      dragSpeed = ((tempTheta - lastTheta) / (now-tempTimestamp)) * 100;
+                      dragSpeedTime = (now-tempTimestamp);
+                      tempTimestamp = now;
+                      lastTheta = tempTheta;
+                      
+                      //Check dragspeed - aggiusto valore con time a 200ms nel caso sia diverso
+                      if(  dragSpeedTime != dragSpeedRefValue  && dragSpeedTime != 0 ) {
+                          //console.log('* ' +dragSpeed);
+                          dragSpeed = dragSpeed * ( dragSpeedRefValue / dragSpeedTime ) ;// * dragSpeedTime
+                          console.info("SPEED * = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms");
+                          $('#dragSpeed').html("SPEED = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms");
+                      }
+                      else {
+                          console.info("SPEED = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms");
+                          $('#dragSpeed').html("SPEED = "+dragSpeed + " gradi/"+dragSpeedRefValue+"ms");
+                      }      
+                      
+                  }
+                  else {
+                      tempTimestamp = now;
+                      lastTheta = tempTheta;
+                  }
+              }
+          },
+          notifyCustomEvents = function(type , originalEvent) {
+              if(type == 'changeSlide' ) {
+                    carousel.children('.active').css(
+                        'transform','rotateY(' + (( 360 / panelCount ) * carousel.children('.active').index()) + 'deg) '+
+                        'translateZ( '+r+'px ) scale(0.8)'
+                    );
+                  
+                    carousel.children('.active').removeClass('active');
+                    carousel.children().eq(activePanel -1).addClass('active');
+                  
+                    carousel.children().eq(activePanel -1).css(
+                        'transform','rotateY(' + (( 360 / panelCount ) * carousel.children().eq(activePanel -1).index()) + 'deg) '+
+                        'translateZ( '+r+'px ) scale(1)'
+                    );
+                  
+                    $(document).trigger({type:'changeSlide',activePanel:activePanel,theta:theta,direction:direction, event:originalEvent });
+              }
+          },
+           
+          utilities = {  
+              decToHex:function(number) {
+                  var hex = number.toString(16);
+                  return hex.length == 1 ? "0" + hex : hex; 
+              },
+              hexToRgb:function(hex) {
+                  var bigint = parseInt(hex, 16);
+                  var r = (bigint >> 16) & 255;
+                  var g = (bigint >> 8) & 255;
+                  var b = bigint & 255;
+                  return r + "," + g + "," + b;
+              },
+              convertDegToRgb:function(c) {
+                  return utilities.hexToRgb( utilities.decToHex(c) );
+              }
+          };
+        
+        setTranslateZ(); 
+        
+        $(window).on('resize', setTranslateZ ); 
+        $(document).on('changeSlide', function(e) {
+           //onChangeSlide bugfix effetto transform ritardato sui link -> rendo link cliccabili subito 
+           /*setTimeout(function(){ 
+               carousel.children('.pageTransition').find('a').attr('style','transform:translateZ(0);'); 
+           },100);*/
+           console.log(e);
+        });
+        //keypres next prev
+        $("body").keydown(function(e) {
+          if(e.keyCode == 37 && onFakeSwipe === false && onDrag === false) { // left
+             onNavButtonClick(-1);
+          }
+          else if(e.keyCode == 39 && onFakeSwipe === false && onDrag === false) { // right
+             onNavButtonClick(1);
+          }
+        });
+        //drag left right distinto x supporto funzione touch x non creare duplicazione di evnti
+        if(touchSupport ){ 
+            container.on('touchstart',startDrag).on('mousemove touchmove',execDrag).on('mouseup touchend',endDrag);
+        }
+        else if(navigator.userAgent.match(/(iPod|iPhone|iPad)/)){ 
+            //con emulatore chrome usare qesta
+            container.on('touchstart',startDrag).on('mousemove touchmove',execDrag).on('mouseup touchend',endDrag); 
+        }
+        else {
+            container.on('mousedown',startDrag).on('mousemove',execDrag).on('mouseup',endDrag);
+            container.on('DOMMouseWheel mousewheel',fakeSwipe);
+        }
+    };
+
+    window.addEventListener( 'DOMContentLoaded', init, false);
+    
+  </script>
+    </body>
+</html>
