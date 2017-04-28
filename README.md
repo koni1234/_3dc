@@ -1,37 +1,89 @@
-## Welcome to GitHub Pagesasdasdas
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, target-densitydpi=device-dpi" />
+        <link rel="stylesheet" type="text/css" href="css/screen.css" />
+        <link rel="stylesheet" type="text/css" href="css/animate.min.css">
+        <title>Hello World</title>
+    </head> 
+    <body>
+            <div class="containerH50">
+                <div id="dragSpeed"> </div>
+                <div id="carousel">
+                  <figure>1</figure>
+                  <figure class="pageTransition">
+                      <div>2<br><a href="demo1.html" >enter</a></div> 
+                    </figure>
+                  <figure>3<br>
+                      <a href="index.html" >back</a> 
+                    </figure>
+                  <figure class="pageTransition">
+                      <div>4<br><a href="canvas1.html" >canvas</a></div> 
+                    </figure>  
+                  <figure>5</figure>
+                  <figure>6</figure>
+                  <figure>7</figure>
+                    <figure><div id="bubbles">8<br><a href="#" class="startGame">play</a></div></figure> 
+                </div>
+            </div>
+            <div class="containerH50">
+                <div id="dragSpeed2"> </div>
+                <div id="carousel2">
+                  <figure>1</figure>
+                  <figure class="pageTransition">
+                      <div>2<br><a href="demo1.html" >enter</a></div> 
+                    </figure>
+                  <figure>3<br>
+                      <a href="index.html" >back</a> 
+                    </figure>
+                  <figure class="pageTransition">
+                      <div>4<br><a href="canvas1.html" >canvas</a></div> 
+                    </figure>
+                  <figure>5</figure>
+                  <figure>6</figure>
+                  <figure>7</figure>
+                  <figure>8</figure>
+                  <figure>9</figure>
+                  <figure>10</figure>
+                  <figure>11</figure>
+                  <figure>12</figure>
+                  <figure>13</figure>
+                  <figure>14</figure>
+                </div>
+            </div>
+      
+<!--
+        <script type="text/javascript" src="cordova.js"></script>
+        <script type="text/javascript" src="js/Flashlight.js"></script>
+-->
+        <script type="text/javascript" src="js/jquery.min.js"></script>  
+        <script type="text/javascript" src="js/jquery._3dc.js"></script> 
+        <script type="text/javascript" src="js/bubbles.js"></script>  
+<!--        <script type="text/javascript" src="js/index.js"></script> -->
+    <script>
+    var init = function() { 
+        $("#carousel")._3dc({ onChangeSlide:function(){ console.info(this);} });
+        $("#carousel2")._3dc({ timer:true , timerSpeed:5000, showTimerPanel:true });
+        
+        $(document).on('click', '#bubbles a.startGame' , function(){ 
+            $("#carousel")._3dc('lock');
+            
+            var bubbleContainer = $('#bubbles').parent();
+            $('#bubbles').bubbles({
+                onClose: function(){ 
+                    $("#carousel")._3dc('unlock'); 
+                    bubbleContainer.append('<div id="bubbles">8<br><a href="#" class="startGame">play</a></div>');
+                }
+            }); 
+        });
+    };
 
-You can use the [editor on GitHub](https://github.com/koni1234/_3dc/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
-
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
-
-### Markdown
-
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/koni1234/_3dc/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+    window.addEventListener( 'DOMContentLoaded', init, false);
+    
+  </script>
+    </body>
+</html>
